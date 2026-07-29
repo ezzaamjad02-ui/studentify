@@ -125,7 +125,37 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     }
 
     return SingleChildScrollView(
-      child: Column(
+      child: Column(children: [
+  // Yeh raha aapka Streak Widget yahan aa jayega:
+  Container(
+    padding: EdgeInsets.all(16),
+    margin: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.orange.shade50,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.orange, width: 2),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.local_fire_department, color: Colors.orange, size: 30),
+        SizedBox(width: 10),
+        Text(
+          "5 Day Streak! 🔥",
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.orange.shade800,
+          ),
+        ),
+      ],
+    ),
+  ),
+  
+  // Phir aapka purana Container yahan se shuru ho ga:
+  Container(
+    width: double.infinity,
+    ...
         children: [
           Container(
             width: double.infinity,
