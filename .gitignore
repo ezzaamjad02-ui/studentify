@@ -1,45 +1,169 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+import 'package:flutter/material.dart';
 
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
+void main() {
+  runApp(const StudentifyApp());
+}
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+class StudentifyApp extends StatelessWidget {
+  const StudentifyApp({super.key});
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-/coverage/
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Studentify',
+      theme: ThemeData(
+        primarySwatch: Colors.deepPurple,
+        useMaterial3: true,
+      ),
+      home: const MainHomeScreen(),
+    );
+  }
+}
 
-# Symbolication related
-app.*.symbols
+class MainHomeScreen extends StatefulWidget {
+  const MainHomeScreen({super.key});
 
-# Obfuscation related
-app.*.map.json
+  @override
+  State<MainHomeScreen> createState() => _MainHomeScreenState();
+}
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+class _MainHomeScreenState extends State<MainHomeScreen> {
+  // Sample Task List
+  List<Map<String, dynamic>> taskList = [
+    {'title': 'Complete Flutter Assignment', 'isCompleted': true},
+    {'title': 'Revise Math Formulas', 'isCompleted': false},
+    {'title': 'Prepare Presentation', 'isCompleted': false},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _buildHomeTab(),
+    );
+  }
+
+  Widget _buildHomeTab() {
+    int pendingCount = 0;
+    int completedCount = 0;
+    
+    for (var task in taskList) {
+      if (task['isCompleted'] == true) {
+        completedCount++;
+      } else {
+        pendingCount++;
+      }
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // 1. Gradient Header Container
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF6C5CE7), Color(0xFFA29BFE)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  "Welcome to Studentify 📚",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  "Keep track of your studies everyday!",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 2. Streak Widget Container
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange, width: 2),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.local_fire_department, color: Colors.orange, size: 30),
+                const SizedBox(width: 10),
+                Text(
+                  "5 Day Streak! 🔥",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange.shade800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 3. Task Status Summary Card
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text("Completed", style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 5),
+                        Text("$completedCount", style: const TextStyle(fontSize: 20, color: Colors.green)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text("Pending", style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 5),
+                        Text("$pendingCount", style: const TextStyle(fontSize: 20, color: Colors.red)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

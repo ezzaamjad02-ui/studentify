@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'dart:math';
 
 void main() {
   runApp(const StudentifyApp());
@@ -11,17 +11,9 @@ class StudentifyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Studentify - Study Planner',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6C5CE7),
-          primary: const Color(0xFF6C5CE7),
-          secondary: const Color(0xFFA29BFE),
-        ),
-        useMaterial3: true,
-        fontFamily: 'Roboto',
-      ),
+      title: 'Studentify',
+      theme: ThemeData(primarySwatch: Colors.deepPurple, useMaterial3: true),
       home: const MainHomeScreen(),
     );
   }
@@ -35,128 +27,213 @@ class MainHomeScreen extends StatefulWidget {
 }
 
 class _MainHomeScreenState extends State<MainHomeScreen> {
-  int _selectedIndex = 0;
-  String userName = "Ezza";
+  int _currentIndex = 0;
 
-  final List<String> motivationList = [
-    "“Believe you can and you're halfway there.”",
-    "“The secret of getting ahead is getting started.”",
-    "“Small daily improvements over time lead to stunning results.”",
-    "“Your future self will thank you for the hard work today!”",
-    "“Focus on progress, not perfection.”",
-  ];
+  // Editable User Profile Name
+  String userName = "Ezza Amjad";
 
-  late String currentMotivation;
-
-  // Task list data
+  // Interactive Task List
   List<Map<String, dynamic>> taskList = [
-    {'title': 'Complete Computer Assignment', 'isCompleted': false},
-    {'title': 'Revise Flutter Layouts', 'isCompleted': true},
+    {'title': 'Complete Flutter Assignment', 'isCompleted': false},
+    {'title': 'Revise Math Formulas', 'isCompleted': false},
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _changeMotivation();
-  }
+  // Motivation List for daily inspiration
+  final List<String> motivationList = [
+    "Small daily progress adds up to huge results! 💪",
+    "Keep pushing, you're closer than you think! 🚀",
+    "Study hard today, shine brighter tomorrow! ✨",
+    "Consistency is what transforms ordinary into success. 🌟",
+    "Your future is created by what you do today, not tomorrow. 📚",
+  ];
 
-  void _changeMotivation() {
-    setState(() {
-      currentMotivation =
-          motivationList[Random().nextInt(motivationList.length)];
+  // Dynamic Streak Count
+  int streakCount = 1;
+
+  // Timer Variables (Study Timer)
+  int _timerSeconds = 1500; // 25 minutes default
+  Timer? _studyTimer;
+  bool _isTimerRunning = false;
+
+  void _startTimer() {
+    if (_isTimerRunning) return;
+    _isTimerRunning = true;
+    _studyTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_timerSeconds > 0) {
+          _timerSeconds--;
+        } else {
+          _isTimerRunning = false;
+          _studyTimer?.cancel();
+          streakCount += 1;
+        }
+      });
     });
   }
 
-  void _updateUserName(String newName) {
-    if (newName.trim().isNotEmpty) {
-      setState(() {
-        userName = newName;
-      });
-    }
+  void _pauseTimer() {
+    _studyTimer?.cancel();
+    setState(() {
+      _isTimerRunning = false;
+    });
+  }
+
+  void _resetTimer() {
+    _studyTimer?.cancel();
+    setState(() {
+      _isTimerRunning = false;
+      _timerSeconds = 1500;
+    });
+  }
+
+  String _formatTime(int seconds) {
+    int minutes = seconds ~/ 60;
+    int remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  // Dialog to Add or Edit Task
+  void _showTaskDialog({String? existingTitle, int? editIndex}) {
+    final TextEditingController taskController = TextEditingController(
+      text: existingTitle ?? '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(editIndex == null ? "Add New Task" : "Edit Task"),
+          content: TextField(
+            controller: taskController,
+            decoration: const InputDecoration(hintText: "Enter task name..."),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (taskController.text.trim().isNotEmpty) {
+                  setState(() {
+                    if (editIndex == null) {
+                      taskList.add({
+                        'title': taskController.text.trim(),
+                        'isCompleted': false,
+                      });
+                    } else {
+                      taskList[editIndex]['title'] = taskController.text.trim();
+                    }
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: Text(editIndex == null ? "Add" : "Update"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Dialog to Edit Profile Name
+  void _showEditNameDialog() {
+    final TextEditingController nameController = TextEditingController(
+      text: userName,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Edit Your Name"),
+          content: TextField(
+            controller: nameController,
+            decoration: const InputDecoration(hintText: "Enter your name..."),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (nameController.text.trim().isNotEmpty) {
+                  setState(() {
+                    userName = nameController.text.trim();
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
+    final List<Widget> pages = [
       _buildHomeTab(),
       _buildTasksTab(),
-      _buildPomodoroTab(),
+      _buildTimerTab(),
       _buildProfileTab(),
     ];
 
     return Scaffold(
-      body: pages[_selectedIndex],
+      body: pages[_currentIndex],
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
+        selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
           setState(() {
-            _selectedIndex = index;
+            _currentIndex = index;
           });
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_rounded), label: 'Home'),
           NavigationDestination(
-            icon: Icon(Icons.task_alt_rounded),
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.task_outlined),
+            selectedIcon: Icon(Icons.task),
             label: 'Tasks',
           ),
           NavigationDestination(
-            icon: Icon(Icons.timer_rounded),
-            label: 'Focus',
+            icon: Icon(Icons.timer_outlined),
+            selectedIcon: Icon(Icons.timer),
+            label: 'Timer',
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_rounded),
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
             label: 'Profile',
           ),
         ],
       ),
+      floatingActionButton: _currentIndex == 1
+          ? FloatingActionButton(
+              onPressed: () => _showTaskDialog(),
+              backgroundColor: const Color(0xFF6C5CE7),
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
     );
   }
 
-  // --- TAB 1: HOME ---
+  // 1. Home Tab View (Includes Motivation List Display)
   Widget _buildHomeTab() {
-    int pendingCount = 0;
-    int completedCount = 0;
-    for (var task in taskList) {
-      if (task['isCompleted'] == true) {
-        completedCount++;
-      } else {
-        pendingCount++;
-      }
-    }
+    int pendingCount = taskList.where((t) => t['isCompleted'] == false).length;
+    int completedCount = taskList.where((t) => t['isCompleted'] == true).length;
 
     return SingleChildScrollView(
-      child: Column(children: [
-  // Yeh raha aapka Streak Widget yahan aa jayega:
-  Container(
-    padding: EdgeInsets.all(16),
-    margin: EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.orange.shade50,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.orange, width: 2),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.local_fire_department, color: Colors.orange, size: 30),
-        SizedBox(width: 10),
-        Text(
-          "5 Day Streak! 🔥",
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.orange.shade800,
-          ),
-        ),
-      ],
-    ),
-  ),
-  
-  // Phir aapka purana Container yahan se shuru ho ga:
-  Container(
-    width: double.infinity,
-    ...
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Gradient Header
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
@@ -171,430 +248,410 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'STUDENTIFY 📚',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.refresh, color: Colors.white),
-                      onPressed: _changeMotivation,
-                      tooltip: 'Change Motivation',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 15),
                 Text(
-                  'Welcome Back, $userName! ✨',
+                  "Welcome, $userName! 📚",
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 26,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Ready to conquer your goals today?',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                  "Keep track of your studies everyday!",
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: Colors.purple.shade50,
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.auto_awesome,
-                      color: Color(0xFF6C5CE7),
-                      size: 30,
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "DAILY MOTIVATION",
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF6C5CE7),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            currentMotivation,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontStyle: FontStyle.italic,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+
+          // Daily Motivation Card using motivationList
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            decoration: BoxDecoration(
+              color: Colors.purple.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.purple.shade200),
             ),
-          ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                _buildStatCard(
-                  'Pending Tasks',
-                  '$pendingCount',
-                  Icons.assignment,
-                  Colors.orange,
+                const Icon(
+                  Icons.format_quote,
+                  color: Color(0xFF6C5CE7),
+                  size: 30,
                 ),
                 const SizedBox(width: 12),
-                _buildStatCard(
-                  'Completed',
-                  '$completedCount',
-                  Icons.check_circle,
-                  Colors.green,
+                Expanded(
+                  child: Text(
+                    // Picks a quote based on current day or list items
+                    motivationList[DateTime.now().day % motivationList.length],
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2D3436),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
+
+          // Dynamic Streak Widget
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange, width: 2),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.local_fire_department,
+                  color: Colors.orange,
+                  size: 30,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  "$streakCount Day Streak! 🔥",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange.shade800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Status Summary Cards
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          "Completed",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          "$completedCount",
+                          style: const TextStyle(
+                            fontSize: 20,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          "Pending",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          "$pendingCount",
+                          style: const TextStyle(
+                            fontSize: 20,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              "Recent Tasks",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          // Task Preview List
+          taskList.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Center(child: Text("No tasks found.")),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: taskList.length > 3 ? 3 : taskList.length,
+                  itemBuilder: (context, index) {
+                    final task = taskList[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
+                      child: ListTile(
+                        title: Text(
+                          task['title'],
+                          style: TextStyle(
+                            decoration: task['isCompleted']
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
+                        trailing: Checkbox(
+                          value: task['isCompleted'],
+                          onChanged: (bool? value) {
+                            setState(() {
+                              taskList[index]['isCompleted'] = value ?? false;
+                              if (value == true) {
+                                streakCount += 1;
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
         ],
       ),
     );
   }
 
-  Widget _buildStatCard(
-    String title,
-    String count,
-    IconData icon,
-    Color color,
-  ) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 2,
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 10),
-            Text(
-              count,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              title,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- TAB 2: TASKS ---
+  // 2. Tasks Tab View
   Widget _buildTasksTab() {
-    TextEditingController taskController = TextEditingController();
-
-    return StatefulBuilder(
-      builder: (context, setTaskState) {
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('My Study Tasks'),
-            backgroundColor: const Color(0xFF6C5CE7),
-            foregroundColor: Colors.white,
-          ),
-          body: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: taskController,
-                        decoration: const InputDecoration(
-                          labelText: 'Enter a new study task...',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6C5CE7),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 16,
-                        ),
-                      ),
-                      onPressed: () {
-                        if (taskController.text.trim().isNotEmpty) {
-                          setState(() {
-                            taskList.add({
-                              'title': taskController.text.trim(),
-                              'isCompleted': false,
-                            });
-                          });
-                          taskController.clear();
-                          setTaskState(() {});
-                        }
-                      },
-                      child: const Icon(Icons.add),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: taskList.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No tasks yet! Add one above.',
-                          style: TextStyle(color: Colors.grey, fontSize: 16),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: taskList.length,
-                        itemBuilder: (context, index) {
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 6,
-                            ),
-                            child: ListTile(
-                              leading: Checkbox(
-                                value: taskList[index]['isCompleted'],
-                                activeColor: const Color(0xFF6C5CE7),
-                                onChanged: (bool? value) {
-                                  setState(() {
-                                    taskList[index]['isCompleted'] =
-                                        value ?? false;
-                                  });
-                                  setTaskState(() {});
-                                },
-                              ),
-                              title: Text(
-                                taskList[index]['title'],
-                                style: TextStyle(
-                                  decoration: taskList[index]['isCompleted']
-                                      ? TextDecoration.lineThrough
-                                      : TextDecoration.none,
-                                  color: taskList[index]['isCompleted']
-                                      ? Colors.grey
-                                      : Colors.black87,
-                                ),
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(
-                                  Icons.delete,
-                                  color: Colors.redAccent,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    taskList.removeAt(index);
-                                  });
-                                  setTaskState(() {});
-                                },
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // --- TAB 3: POMODORO TIMER WITH CHARACTER ---
-  Widget _buildPomodoroTab() {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Focus Timer & Study Buddy'),
+        title: const Text("Manage Tasks"),
+        backgroundColor: const Color(0xFF6C5CE7),
+        foregroundColor: Colors.white,
+      ),
+      body: taskList.isEmpty
+          ? const Center(
+              child: Text("No tasks added yet! Tap '+' button below to add."),
+            )
+          : ListView.builder(
+              itemCount: taskList.length,
+              itemBuilder: (context, index) {
+                final task = taskList[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
+                  child: ListTile(
+                    leading: Checkbox(
+                      value: task['isCompleted'],
+                      onChanged: (bool? value) {
+                        setState(() {
+                          taskList[index]['isCompleted'] = value ?? false;
+                          if (value == true) {
+                            streakCount += 1;
+                          }
+                        });
+                      },
+                    ),
+                    title: Text(
+                      task['title'],
+                      style: TextStyle(
+                        decoration: task['isCompleted']
+                            ? TextDecoration.lineThrough
+                            : null,
+                      ),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () => _showTaskDialog(
+                            existingTitle: task['title'],
+                            editIndex: index,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () {
+                            setState(() {
+                              taskList.removeAt(index);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  // 3. Timer Tab View
+  Widget _buildTimerTab() {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Study Timer"),
         backgroundColor: const Color(0xFF6C5CE7),
         foregroundColor: Colors.white,
       ),
       body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.purple.shade50,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFF6C5CE7),
-                    width: 1.5,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('🐼', style: TextStyle(fontSize: 40)),
-                    const SizedBox(width: 15),
-                    const Flexible(
-                      child: Text(
-                        "Hi Ezza! Main aapka study companion hoon. Chalein mil kar focus karein!",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF6C5CE7),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.timer, size: 80, color: Color(0xFF6C5CE7)),
+            const SizedBox(height: 20),
+            Text(
+              _formatTime(_timerSeconds),
+              style: const TextStyle(
+                fontSize: 60,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2D3436),
               ),
-              const SizedBox(height: 40),
-              Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF6C5CE7), Color(0xFFA29BFE)],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.purple.withOpacity(0.3),
-                      blurRadius: 15,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-                child: const Center(
-                  child: Text(
-                    '25:00',
-                    style: TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+            ),
+            const SizedBox(height: 30),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _isTimerRunning ? _pauseTimer : _startTimer,
+                  icon: Icon(_isTimerRunning ? Icons.pause : Icons.play_arrow),
+                  label: Text(_isTimerRunning ? "Pause" : "Start Focus"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6C5CE7),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 40),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6C5CE7),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                    ),
-                    onPressed: () {},
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text('Start Focus'),
-                  ),
-                  const SizedBox(width: 15),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                      side: const BorderSide(color: Color(0xFF6C5CE7)),
-                    ),
-                    onPressed: () {},
-                    icon: const Icon(Icons.refresh, color: Color(0xFF6C5CE7)),
-                    label: const Text(
-                      'Reset',
-                      style: TextStyle(color: Color(0xFF6C5CE7)),
+                const SizedBox(width: 16),
+                OutlinedButton.icon(
+                  onPressed: _resetTimer,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text("Reset"),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
                     ),
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // --- TAB 4: PROFILE & SETTINGS ---
+  // 4. Profile Tab View
   Widget _buildProfileTab() {
-    TextEditingController nameController = TextEditingController(
-      text: userName,
-    );
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings & Profile'),
+        title: const Text("Student Profile"),
         backgroundColor: const Color(0xFF6C5CE7),
         foregroundColor: Colors.white,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
+      body: Center(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const CircleAvatar(
+              radius: 50,
+              backgroundColor: Color(0xFFA29BFE),
+              child: Icon(Icons.person, size: 50, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  userName,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Color(0xFF6C5CE7)),
+                  onPressed: _showEditNameDialog,
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
             const Text(
-              "Edit User Profile",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              "Studentify Active User",
+              style: TextStyle(color: Colors.grey, fontSize: 16),
             ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Your Name',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
+            const SizedBox(height: 20),
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 40),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Column(
+                      children: [
+                        const Text(
+                          "Streak",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          "$streakCount Days",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        const Text(
+                          "Total Tasks",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          "${taskList.length}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 15),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6C5CE7),
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                _updateUserName(nameController.text);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Name Updated Successfully!')),
-                );
-              },
-              child: const Text('Save Name'),
             ),
           ],
         ),
